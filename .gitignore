@@ -1,0 +1,3 @@
+# build output (the .exe goes to GitHub Releases)
+*.exe
+snow.ico
