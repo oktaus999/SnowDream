@@ -1,29 +1,34 @@
 # ❄ SnowDream
 
-**Realistic snow for your Windows desktop — with drifts that pile up on your windows.**
+**Realistic snow for your Windows desktop — with drifts on your windows, icicles, wind and New Year fireworks.**
 
 *by øktaus*
 
 [English](#english) · [Русский](#русский)
 
 <p align="center">
-  <img src="docs/settings-en.png" width="600" alt="SnowDream settings window">
+  <img src="docs/settings-en.png" width="760" alt="SnowDream settings window">
 </p>
 
 ---
 
 ## English
 
-SnowDream makes it snow right on top of your desktop. Flakes drift with the wind, land on the top edges of your open windows and slowly build up snowdrifts. Close or minimize a window and its snowdrift falls down — and can land on the windows below.
+SnowDream makes it snow right on top of your desktop. Flakes drift with the wind, land on the top edges of your open windows and slowly build up hilly snowdrifts. Close or minimize a window and its drift falls down — and can land on the windows below. Icicles grow along the top edge of the screen and shatter when they fall.
 
 ### Features
 
-- **Real snow physics.** Snow piles up on the visible top edges of windows, slides off the edges, follows the rounded corners of Windows 11 windows, and covers the taskbar and the bottom of the screen.
+- **Real snow physics.** Snow piles up on the visible top edges of windows into natural, hilly drifts, slides off the edges, follows the rounded corners of Windows 11 windows, and covers the taskbar and the bottom of the screen.
 - **Windows interact with snow.** Close or minimize a window and its drift collapses. Jerk a window sharply and the snow flies off by inertia; drag it gently and the snow stays.
-- **Blow all snow away.** A gust of wind sweeps across the screen from left to right and lifts every drift into the air. After ~5 seconds it calms down and the snow falls straight again.
-- **Doesn't get in the way.** Click-through overlay; snow gets quiet in maximized windows and hides in games and fullscreen video.
-- **Lightweight.** ~1–3% CPU, ~50 MB RAM, a single ~60 KB `.exe` with no dependencies.
-- **Settings:** intensity (light / snowfall / blizzard), fall speed, snow over windows or desktop only, drifts on windows and the taskbar, behaviour in maximized windows, performance mode (30 fps / 60 fps / monitor refresh rate), start with Windows, Russian / English.
+- **Icicles.** They grow down from the top edge of every monitor, drip now and then, break off and shatter into bouncing ice shards. Adjustable growth speed.
+- **Wind.** Choose the direction (left, auto, right) and strength — from snow falling straight down to a slanted blizzard.
+- **Blow all snow away.** A gust sweeps across the screen in the wind direction and lifts every drift, icicle and shard into the air. After ~5 seconds it calms down.
+- **Flake styles.** Soft dots, rotating six-armed stars, blocks or pixel snowflakes — the last two with blocky, step-like drifts.
+- **Cursor.** Flakes swirl around your mouse pointer.
+- **New Year.** A live countdown in the settings, and fireworks on your desktop at 00:00 on January 1st (or right now, with a button).
+- **Doesn't get in the way.** Click-through overlay; snow can get quiet or hide in maximized windows and hides in games and fullscreen video.
+- **Lightweight.** ~1–3% CPU, rendered on its own thread, a single ~100 KB `.exe` with no dependencies.
+- Intensity, fall speed and flake size, performance mode (30 fps / 60 fps / monitor refresh rate), start with Windows, Russian / English.
 
 ### Download
 
@@ -35,7 +40,7 @@ Grab `SnowDream.exe` from the [Releases](../../releases) page and run it. No ins
 
 - **Left-click** the snowflake in the tray to open the settings.
 - **Right-click** it for a quick menu: settings, stop snowfall, blow the snow away, quit.
-- `SnowDream.exe --blow` blows the snow away in the running app (handy for a shortcut).
+- `SnowDream.exe --blow` blows the snow away and `SnowDream.exe --fireworks` launches fireworks in the running app (handy for shortcuts).
 - If you don't see the snowflake, Windows 11 may have hidden it under the **^** arrow next to the clock — drag it onto the taskbar.
 
 ### Requirements
@@ -54,24 +59,38 @@ The result is `SnowDream.exe` in the same folder.
 
 | File | What's inside |
 | --- | --- |
-| `Snow.cs` | overlay window, snow physics, window tracking, tray |
+| `Snow.cs` | WinAPI, settings, entry point |
+| `App.cs` | app lifetime, tray, render thread and the main frame |
+| `Sim.cs` | windows, drifts and their physics |
+| `Draw.cs` | flakes, cursor, fireworks, drawing |
+| `Ice.cs` | icicles |
+| `Styles.cs` | flake styles and blocky drifts |
 | `Ui.cs` | settings window with custom-drawn controls |
 | `build.bat` | build script |
+
+### Support
+
+If you like SnowDream, you can [support the author](https://www.donationalerts.com/r/oktau7) ♥
 
 ---
 
 ## Русский
 
-SnowDream запускает снег прямо поверх рабочего стола. Снежинки летят с ветром, ложатся на верхние края открытых окон и постепенно наметают сугробы. Закроешь или свернёшь окно, и его сугроб рухнет вниз, а может и засыпать окна под ним.
+SnowDream запускает снег прямо поверх рабочего стола. Снежинки летят с ветром, ложатся на верхние края открытых окон и постепенно наметают холмистые сугробы. Закроешь или свернёшь окно, и его сугроб рухнет вниз, а может и засыпать окна под ним. По верхнему краю экрана растут сосульки, а падая, они разбиваются.
 
 ### Возможности
 
-- **Настоящая физика снега.** Снег копится на видимых краях окон, сползает с краёв, повторяет скруглённые углы окон Windows 11, засыпает панель задач и низ экрана.
+- **Настоящая физика снега.** Снег копится на видимых краях окон естественными холмистыми сугробами, сползает с краёв, повторяет скруглённые углы окон Windows 11, засыпает панель задач и низ экрана.
 - **Окна взаимодействуют со снегом.** Закрыл или свернул окно, и сугроб обрушивается. Резко дёрнул окно, и снег слетает по инерции, а при плавном перетаскивании держится.
-- **«Сдуть весь снег».** Порыв ветра проносится по экрану слева направо и поднимает в воздух все сугробы. Секунд через 5 он стихает, и снег снова падает вертикально.
-- **Не мешает.** Клики проходят сквозь снег. В развёрнутых окнах снег становится тихим, а в играх и полноэкранном видео прячется.
-- **Лёгкий.** Около 1–3% процессора, ~50 МБ памяти, один `.exe` на ~60 КБ без зависимостей.
-- **Настройки:** сила снегопада (лёгкий / снегопад / метель), скорость падения, снег поверх окон или только на рабочем столе, сугробы на окнах и панели задач, поведение в развёрнутых окнах, режим нагрузки (30 кадр/с / 60 кадр/с / частота монитора), автозапуск, русский / английский.
+- **Сосульки.** Растут вниз от верхнего края каждого монитора, иногда капают, срываются и разбиваются на подпрыгивающие осколки. Скорость роста настраивается.
+- **Ветер.** Можно выбрать направление (влево, авто, вправо) и силу: от снега строго вниз до косой метели.
+- **«Сдуть весь снег».** Порыв ветра проносится по экрану в сторону ветра и поднимает в воздух сугробы, сосульки и осколки. Секунд через 5 он стихает.
+- **Виды снежинок.** Мягкие точки, вращающиеся шестилучевые звёзды, блоки или пиксельные снежинки. У двух последних сугробы тоже блочные, ступеньками.
+- **Курсор.** Снежинки облетают мышку.
+- **Новый год.** Живой отсчёт в настройках и салют на рабочем столе 1 января в 00:00, а кнопкой можно запустить его прямо сейчас.
+- **Не мешает.** Клики проходят сквозь снег. В развёрнутых окнах снег может стать тихим или спрятаться, а в играх и полноэкранном видео прячется.
+- **Лёгкий.** Около 1–3% процессора, рисуется в отдельном потоке, один `.exe` примерно на 100 КБ без зависимостей.
+- Сила снегопада, скорость падения и размер снежинок, режим нагрузки (30 / 60 кадров в секунду / частота монитора), автозапуск, русский / английский.
 
 ### Скачать
 
@@ -83,7 +102,7 @@ SnowDream запускает снег прямо поверх рабочего �
 
 - **Левый клик** по снежинке в трее открывает настройки.
 - **Правый клик** открывает быстрое меню: настройки, остановить снегопад, сдуть снег, выход.
-- `SnowDream.exe --blow` сдувает снег у запущенной программы (удобно повесить на ярлык).
+- `SnowDream.exe --blow` сдувает снег, а `SnowDream.exe --fireworks` запускает салют у запущенной программы. Удобно повесить на ярлык.
 - Если снежинки не видно, Windows 11 могла спрятать её под стрелочку **^** у часов. Перетащи её на панель задач.
 
 ### Требования
@@ -99,6 +118,10 @@ build.bat
 ```
 
 Готовый `SnowDream.exe` появится в той же папке.
+
+### Поддержать
+
+Если SnowDream тебе понравился, можно [поддержать автора](https://www.donationalerts.com/r/oktau7) ♥
 
 ---
 

@@ -200,9 +200,20 @@ namespace DesktopSnow
 
         bool En { get { return enabled == null || enabled(); } }
 
+        public bool Secondary;   // спокойная кнопка внутри карточки
+
         public override void Paint(Graphics g)
         {
-            if (primary)
+            if (Secondary)
+            {
+                Color c = Th.Field;
+                if (!En) c = Th.Card;
+                else if (Down) c = Th.Mix(Th.Field, Color.Black, 0.15f);
+                else if (Hover) c = Th.Mix(Th.Field, Th.Text, 0.08f);
+                Th.Fill(g, B, 10 * s, c);
+                Th.Text2(g, text(), F.FTextB, En ? Th.Text : Th.Sub, B, StringAlignment.Center);
+            }
+            else if (primary)
             {
                 Color c = Th.Accent;
                 if (!En) c = Th.Mix(Th.Accent, Th.Card, 0.55f);
@@ -241,6 +252,24 @@ namespace DesktopSnow
         }
 
         public override void OnUp(PointF p, bool inside) { if (inside && En) { act(); F.Invalidate(); } }
+    }
+
+    // «Плашка» в шапке с живым отсчётом до Нового года, прижата к правому краю B.
+    class Chip : Widget
+    {
+        Func<string> text;
+        public Chip(Func<string> text) { this.text = text; }
+        public override bool Clickable { get { return false; } }
+        public override void Paint(Graphics g)
+        {
+            string tx = text();
+            SizeF ts = g.MeasureString(tx, F.FTextB);
+            float w = ts.Width + 26 * s;
+            RectangleF r = new RectangleF(B.Right - w, B.Y, w, B.Height);
+            Th.Fill(g, r, B.Height / 2, Th.Field);
+            using (SolidBrush b = new SolidBrush(Th.Accent)) g.FillEllipse(b, r.X + 11 * s, r.Y + B.Height / 2 - 3 * s, 6 * s, 6 * s);
+            Th.Text2(g, tx, F.FTextB, Th.Text, new RectangleF(r.X + 22 * s, r.Y, ts.Width + 4, r.Height), StringAlignment.Near);
+        }
     }
 
     class CloseBtn : Widget
@@ -313,6 +342,24 @@ namespace DesktopSnow
 
         float P(float v) { return v * Sc; }
 
+        const string DonateUrl = "https://www.donationalerts.com/r/oktau7";
+
+        // Открывает страницу поддержки автора в браузере по умолчанию.
+        static void OpenDonate()
+        {
+            try { System.Diagnostics.Process.Start(DonateUrl); } catch { }
+        }
+
+        // «До Нового года 48 дн 07:12:33»
+        static string Countdown()
+        {
+            DateTime now = DateTime.Now;
+            if (now.Month == 1 && now.Day == 1) return L.T("С Новым годом!", "Happy New Year!");
+            TimeSpan d = new DateTime(now.Year + 1, 1, 1) - now;
+            return string.Format(L.T("До Нового года {0} дн {1:00}:{2:00}:{3:00}", "New Year in {0}d {1:00}:{2:00}:{3:00}"),
+                                 d.Days, d.Hours, d.Minutes, d.Seconds);
+        }
+
         // десятичный разделитель: «0,6» по-русски, «0.6» по-английски
         static IFormatProvider Num
         {
@@ -372,39 +419,74 @@ namespace DesktopSnow
         void Build()
         {
             Config C = App.C;
-            float W = P(700), pad = P(20), gap = P(14), colW = (W - 2 * pad - gap) / 2;
+            float pad = P(20), gap = P(14), colW = P(322), W = 3 * colW + 2 * gap + 2 * pad;
             headerH = P(74);
             Add(new CloseBtn(), W - pad - P(34), P(20), P(34), P(34));
 
-            // ---- левая колонка ----
-            float lx = pad, y = headerH;
-            BeginCard(lx, y, colW, L.T("СНЕГОПАД", "SNOWFALL"));
+            // язык — компактная плашка в шапке, рядом отсчёт до Нового года
+            float langW = P(116), langX = W - pad - P(34) - P(12) - langW;
+            Add(new Segmented(new[] { "RU", "EN" }, delegate { return C.Lang; },
+                              delegate(int v) { if (C.Lang != v) { C.Lang = v; BeginInvoke(new MethodInvoker(Rebuild)); } }),
+                langX, P(22), langW, P(30));
+            Add(new Chip(Countdown), langX - P(12) - P(330), P(23), P(330), P(28));
+
+            // ---- колонка 1 ----
+            float x1 = pad, x2 = pad + colW + gap, x3 = pad + 2 * (colW + gap), y = headerH;
+            BeginCard(x1, y, colW, L.T("СНЕГОПАД", "SNOWFALL"));
             RowToggle(L.T("Снегопад идёт", "Snow is falling"), null, delegate { return C.Snowing; }, delegate(bool v) { C.Snowing = v; });
             RowCaption(delegate { return L.T("Сила", "Intensity"); }, null, false);
             RowSegmented(L.En ? new[] { "Light", "Snowfall", "Blizzard" } : new[] { "Лёгкий", "Снегопад", "Метель" },
                          delegate { return C.Intensity; }, delegate(int v) { C.Intensity = v; });
+            RowCaption(delegate { return L.T("Вид снежинок", "Flake style"); }, null, false);
+            RowSegmented(L.En ? new[] { "Dots", "Stars", "Blocks", "Pixels" } : new[] { "Точки", "Звёзды", "Блоки", "Пиксели" },
+                         delegate { return C.Style; }, delegate(int v) { C.Style = v; });
             RowCaption(delegate { return L.T("Скорость падения", "Fall speed"); }, delegate { return C.Speed.ToString("0.0", Num) + "×"; }, false);
             RowSlider(0.3f, 2.5f, 0.1f, delegate { return C.Speed; }, delegate(float v) { C.Speed = v; });
-            y = EndCard() + gap;
+            RowCaption(delegate { return L.T("Размер снежинок", "Flake size"); }, delegate { return C.Size.ToString("0.0", Num) + "×"; }, false);
+            RowSlider(0.5f, 2f, 0.1f, delegate { return C.Size; }, delegate(float v) { C.Size = v; });
+            RowCaption(delegate { return L.T("Ветер", "Wind"); }, null, false);
+            RowSegmented(L.En ? new[] { "← Left", "Auto", "Right →" } : new[] { "← Влево", "Авто", "Вправо →" },
+                         delegate { return C.WindDir; }, delegate(int v) { C.WindDir = v; });
+            RowCaption(delegate { return L.T("Сила ветра", "Wind strength"); }, delegate { return C.WindPower.ToString("0.0", Num) + "×"; }, false);
+            RowSlider(0f, 3f, 0.1f, delegate { return C.WindPower; }, delegate(float v) { C.WindPower = v; });
+            float b1 = EndCard(); int last1 = cards.Count - 1;
 
-            BeginCard(lx, y, colW, L.T("КУДА ПАДАЕТ СНЕГ", "WHERE SNOW FALLS"));
+            // ---- колонка 2 ----
+            y = headerH;
+            BeginCard(x2, y, colW, L.T("КУДА ПАДАЕТ СНЕГ", "WHERE SNOW FALLS"));
             RowToggle(L.T("Поверх окон", "Over windows"), L.T("Выкл — только на рабочем столе", "Off — desktop only"),
                       delegate { return C.Front; }, delegate(bool v) { C.Front = v; });
             RowToggle(L.T("На окна", "On windows"), L.T("Сугробы на верхних краях окон", "Drifts on top of windows"),
                       delegate { return C.Drifts; }, delegate(bool v) { C.Drifts = v; });
             RowToggle(L.T("На панель задач", "On the taskbar"), L.T("Сугроб на панели внизу", "A drift on the bottom bar"),
                       delegate { return C.Taskbar; }, delegate(bool v) { C.Taskbar = v; });
-            float leftBottom = EndCard();
+            y = EndCard() + gap;
 
-            // ---- правая колонка ----
-            float rx = pad + colW + gap; y = headerH;
-            BeginCard(rx, y, colW, L.T("РАЗВЁРНУТОЕ ОКНО", "MAXIMIZED WINDOW"));
+            BeginCard(x2, y, colW, L.T("СОСУЛЬКИ", "ICICLES"));
+            RowToggle(L.T("Сосульки", "Icicles"), L.T("Растут на верхнем краю экрана", "Grow on the top edge of the screen"),
+                      delegate { return C.Icicles; }, delegate(bool v) { C.Icicles = v; });
+            RowCaption(delegate { return L.T("Скорость роста", "Growth speed"); }, delegate { return C.IceSpeed.ToString("0.0", Num) + "×"; }, false);
+            RowSlider(0.2f, 3f, 0.1f, delegate { return C.IceSpeed; }, delegate(float v) { C.IceSpeed = v; });
+            y = EndCard() + gap;
+
+            BeginCard(x2, y, colW, L.T("РАЗВЁРНУТОЕ ОКНО", "MAXIMIZED WINDOW"));
             RowCaption(delegate { return L.T("Когда окно открыто на весь экран", "When a window fills the screen"); }, null, true);
             RowSegmented(L.En ? new[] { "Normal", "Quiet", "Hide" } : new[] { "Как обычно", "Тихо", "Скрыть" },
                          delegate { return C.MaxMode; }, delegate(int v) { C.MaxMode = v; });
+            float b2 = EndCard(); int last2 = cards.Count - 1;
+
+            // ---- колонка 3 ----
+            y = headerH;
+            BeginCard(x3, y, colW, L.T("НОВЫЙ ГОД", "NEW YEAR"));
+            RowToggle(L.T("Салют в полночь", "Fireworks at midnight"), L.T("1 января в 00:00", "January 1st, 00:00"),
+                      delegate { return C.Fireworks; }, delegate(bool v) { C.Fireworks = v; });
+            Btn fwb = new Btn(delegate { return L.T("Запустить салют сейчас", "Launch fireworks now"); }, delegate { App.StartFireworks(); }, false, null);
+            fwb.Secondary = true;
+            Add(fwb, cx + P(18), cy, cw - P(36), P(38));
+            cy += P(38 + 8);
             y = EndCard() + gap;
 
-            BeginCard(rx, y, colW, L.T("НАГРУЗКА", "PERFORMANCE"));
+            BeginCard(x3, y, colW, L.T("НАГРУЗКА", "PERFORMANCE"));
             RowCaption(delegate { return L.T("Частота кадров и количество снега", "Frame rate and amount of snow"); }, null, true);
             RowSegmented(L.En ? new[] { "Eco", "Balanced", "Smooth" } : new[] { "Эко", "Баланс", "Плавно" },
                          delegate { return C.Perf; }, delegate(int v) { C.Perf = v; });
@@ -415,30 +497,30 @@ namespace DesktopSnow
             }, null, true);
             y = EndCard() + gap;
 
-            BeginCard(rx, y, colW, L.T("ПРОЧЕЕ", "OTHER"));
+            BeginCard(x3, y, colW, L.T("ПРОЧЕЕ", "OTHER"));
+            RowToggle(L.T("Курсор разгоняет снег", "Cursor scatters snow"), L.T("Снежинки облетают мышку", "Flakes swirl around the mouse"),
+                      delegate { return C.Cursor; }, delegate(bool v) { C.Cursor = v; });
             RowToggle(L.T("Прятать в играх", "Hide in games"), L.T("И в полноэкранном видео", "And in fullscreen video"),
                       delegate { return C.HideFs; }, delegate(bool v) { C.HideFs = v; });
             RowToggle(L.T("Запускать с Windows", "Start with Windows"), null,
                       delegate { return SnowApp.GetAutostart(); }, delegate(bool v) { SnowApp.SetAutostart(v); });
-            float rightBottom = EndCard();
+            float b3 = EndCard(); int last3 = cards.Count - 1;
 
-            // ---- язык: компактная карточка на всю ширину ----
-            float ly = Math.Max(leftBottom, rightBottom) + gap, lh = P(64);
-            CardInfo lc = new CardInfo();
-            lc.R = new RectangleF(pad, ly, W - 2 * pad, lh); lc.Title = L.T("ЯЗЫК", "LANGUAGE"); lc.Compact = true;
-            cards.Add(lc);
-            float segW = P(260);
-            Add(new Segmented(new[] { "Русский", "English" }, delegate { return C.Lang; },
-                              delegate(int v) { if (C.Lang != v) { C.Lang = v; BeginInvoke(new MethodInvoker(Rebuild)); } }),
-                W - pad - P(14) - segW, ly + (lh - P(36)) / 2, segW, P(36));
+            // выравниваем низ колонок: последнюю карточку каждой колонки вытягиваем до общей линии
+            float maxB = Math.Max(b1, Math.Max(b2, b3));
+            cards[last1].R.Height += maxB - b1;
+            cards[last2].R.Height += maxB - b2;
+            cards[last3].R.Height += maxB - b3;
 
-            float by = ly + lh + P(16);
+            float by = maxB + P(16);
             Add(new Btn(delegate { return App.Gusting ? L.T("Ветер дует…", "Wind is blowing…") : L.T("Сдуть весь снег", "Blow all snow away"); },
                         delegate { App.StartGust(); }, true, delegate { return !App.Gusting; }),
                 pad, by, W - 2 * pad, P(50));
             by += P(50 + 8);
             Add(new Btn(delegate { return L.T("Выйти из программы", "Quit SnowDream"); }, delegate { App.ExitApp(); }, false, null),
                 W - pad - P(170), by, P(170), P(32));
+            Add(new Btn(delegate { return L.T("♥ Поддержать автора", "♥ Support the author"); }, OpenDonate, false, null),
+                W - pad - P(170) - P(8) - P(190), by, P(190), P(32));
             Add(new Caption(delegate { return L.T("Клик по снежинке в трее открывает это окно", "Click the snowflake in the tray to open this window"); }, null, true),
                 pad + P(4), by, P(440), P(32));
             by += P(32 + 14);
