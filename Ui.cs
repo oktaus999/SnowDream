@@ -8,18 +8,18 @@ using System.Windows.Forms;
 
 namespace DesktopSnow
 {
-    static class Th
+    static partial class Th
     {
-        public static readonly Color Bg = Color.FromArgb(21, 23, 28);
-        public static readonly Color Card = Color.FromArgb(30, 33, 40);
-        public static readonly Color Field = Color.FromArgb(40, 44, 53);
-        public static readonly Color Line = Color.FromArgb(48, 53, 64);
-        public static readonly Color Text = Color.FromArgb(234, 237, 243);
-        public static readonly Color Sub = Color.FromArgb(138, 146, 162);
-        public static readonly Color Accent = Color.FromArgb(140, 203, 255);
-        public static readonly Color AccentText = Color.FromArgb(10, 24, 38);
-        public static readonly Color Track = Color.FromArgb(55, 60, 72);
-        public static readonly Color Knob = Color.FromArgb(160, 168, 182);
+        public static Color Bg = Color.FromArgb(21, 23, 28);
+        public static Color Card = Color.FromArgb(30, 33, 40);
+        public static Color Field = Color.FromArgb(40, 44, 53);
+        public static Color Line = Color.FromArgb(48, 53, 64);
+        public static Color Text = Color.FromArgb(234, 237, 243);
+        public static Color Sub = Color.FromArgb(138, 146, 162);
+        public static Color Accent = Color.FromArgb(140, 203, 255);
+        public static Color AccentText = Color.FromArgb(10, 24, 38);
+        public static Color Track = Color.FromArgb(55, 60, 72);
+        public static Color Knob = Color.FromArgb(160, 168, 182);
 
         public static GraphicsPath Round(RectangleF r, float rad)
         {
@@ -215,11 +215,10 @@ namespace DesktopSnow
             }
             else if (primary)
             {
-                Color c = Th.Accent;
-                if (!En) c = Th.Mix(Th.Accent, Th.Card, 0.55f);
-                else if (Down) c = Th.Mix(Th.Accent, Color.Black, 0.12f);
-                else if (Hover) c = Th.Mix(Th.Accent, Color.White, 0.18f);
-                Th.Fill(g, B, 12 * s, c);
+                // у тем бывает градиент или радуга на главной кнопке
+                Color toward = !En ? Th.Card : (Down ? Color.Black : (Hover ? Color.White : Th.Accent));
+                float amt = !En ? 0.55f : (Down ? 0.12f : (Hover ? 0.18f : 0f));
+                Th.FillAccent(g, B, 12 * s, toward, amt);
                 string tx = text();
                 SizeF ts = g.MeasureString(tx, F.FBtn);
                 float iw = 22 * s, gap = 10 * s, total = iw + gap + ts.Width;
@@ -313,6 +312,7 @@ namespace DesktopSnow
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ShowInTaskbar = true;
+            Th.Apply(app.C.Theme);
             BackColor = Th.Bg;
             DoubleBuffered = true;
             KeyPreview = true;
@@ -335,6 +335,7 @@ namespace DesktopSnow
                 bool any = false;
                 foreach (Widget w in ws) if (w.Animate()) any = true;
                 if (++tick % 30 == 0) any = true;   // раз в ~0.5 с обновляем статистику
+                if (Th.Decor == 3 && tick % 3 == 0) any = true;   // мерцание звёзд и радуги
                 if (any) Invalidate();
             };
             tm.Start();
@@ -422,6 +423,9 @@ namespace DesktopSnow
             float pad = P(20), gap = P(14), colW = P(322), W = 3 * colW + 2 * gap + 2 * pad;
             headerH = P(74);
             Add(new CloseBtn(), W - pad - P(34), P(20), P(34), P(34));
+
+            // кружки выбора темы — посередине шапки
+            Add(new ThemeDots(), pad + P(300), P(21), P(4 * 29 + 130), P(32));
 
             // язык — компактная плашка в шапке, рядом отсчёт до Нового года
             float langW = P(116), langX = W - pad - P(34) - P(12) - langW;
@@ -546,12 +550,21 @@ namespace DesktopSnow
 
         public void Changed() { App.Apply(); Invalidate(); }
 
+        public void SetTheme(int theme)
+        {
+            App.C.Theme = theme;
+            Th.Apply(theme);
+            BackColor = Th.Bg;
+            Changed();
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
             g.Clear(Th.Bg);
+            Th.DrawDecor(g, ClientSize.Width, ClientSize.Height, headerH, Sc, tick);
 
             // шапка
             float isz = P(34), ix = P(22), iy = P(20);

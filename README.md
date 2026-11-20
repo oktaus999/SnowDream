@@ -25,10 +25,15 @@ SnowDream makes it snow right on top of your desktop. Flakes drift with the wind
 - **Blow all snow away.** A gust sweeps across the screen in the wind direction and lifts every drift, icicle and shard into the air. After ~5 seconds it calms down.
 - **Flake styles.** Soft dots, rotating six-armed stars, blocks or pixel snowflakes — the last two with blocky, step-like drifts.
 - **Cursor.** Flakes swirl around your mouse pointer.
+- **Themes for the settings window.** Night, Fir tree (red, white and green with a candy-cane stripe), Tangerine (red and orange with a warm glow) and Rainbow (space blue with twinkling pixel stars and a rainbow trail).
 - **New Year.** A live countdown in the settings, and fireworks on your desktop at 00:00 on January 1st (or right now, with a button).
 - **Doesn't get in the way.** Click-through overlay; snow can get quiet or hide in maximized windows and hides in games and fullscreen video.
 - **Lightweight.** ~1–3% CPU, rendered on its own thread, a single ~100 KB `.exe` with no dependencies.
 - Intensity, fall speed and flake size, performance mode (30 fps / 60 fps / monitor refresh rate), start with Windows, Russian / English.
+
+<p align="center">
+  <img src="docs/themes.png" width="900" alt="Settings window themes: Fir tree, Tangerine, Rainbow">
+</p>
 
 ### Download
 
@@ -65,6 +70,7 @@ The result is `SnowDream.exe` in the same folder.
 | `Draw.cs` | flakes, cursor, fireworks, drawing |
 | `Ice.cs` | icicles |
 | `Styles.cs` | flake styles and blocky drifts |
+| `Themes.cs` | settings window themes and their decorations |
 | `Ui.cs` | settings window with custom-drawn controls |
 | `build.bat` | build script |
 
@@ -87,6 +93,7 @@ SnowDream запускает снег прямо поверх рабочего �
 - **«Сдуть весь снег».** Порыв ветра проносится по экрану в сторону ветра и поднимает в воздух сугробы, сосульки и осколки. Секунд через 5 он стихает.
 - **Виды снежинок.** Мягкие точки, вращающиеся шестилучевые звёзды, блоки или пиксельные снежинки. У двух последних сугробы тоже блочные, ступеньками.
 - **Курсор.** Снежинки облетают мышку.
+- **Темы окна настроек.** Ночь, Ёлка (красно-бело-зелёная с полоской-«леденцом»), Мандарин (красно-оранжевая с тёплым свечением) и Радуга (космический синий, мерцающие пиксельные звёзды и радужный шлейф).
 - **Новый год.** Живой отсчёт в настройках и салют на рабочем столе 1 января в 00:00, а кнопкой можно запустить его прямо сейчас.
 - **Не мешает.** Клики проходят сквозь снег. В развёрнутых окнах снег может стать тихим или спрятаться, а в играх и полноэкранном видео прячется.
 - **Лёгкий.** Около 1–3% процессора, рисуется в отдельном потоке, один `.exe` примерно на 100 КБ без зависимостей.

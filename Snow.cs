@@ -194,6 +194,7 @@ namespace DesktopSnow
         public float IceSpeed = 1f;    // скорость роста сосулек
         public int WindDir = 1;        // ветер: 0 влево, 1 авто, 2 вправо
         public float WindPower = 1f;   // сила ветра, 0 — снег падает строго вниз
+        public int Theme = 0;          // тема окна настроек: 0 ночь, 1 ёлка, 2 мандарин, 3 радуга
         public int Style = 0;          // вид снежинок: 0 точки, 1 звёзды-кристаллы, 2 блоки, 3 пиксельные звёздочки
 
         static int DefaultLang()
@@ -237,6 +238,7 @@ namespace DesktopSnow
                         case "icicles": Icicles = b; break;
                         case "windDir": if (int.TryParse(v, out iv)) WindDir = Math.Max(0, Math.Min(2, iv)); break;
                         case "windPower": if (float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out fv)) WindPower = Math.Max(0f, Math.Min(3f, fv)); break;
+                        case "theme": if (int.TryParse(v, out iv)) Theme = Math.Max(0, Math.Min(3, iv)); break;
                         case "style": if (int.TryParse(v, out iv)) Style = Math.Max(0, Math.Min(3, iv)); break;
                         case "iceSpeed": if (float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out fv)) IceSpeed = Math.Max(0.2f, Math.Min(3f, fv)); break;
                         case "fireworks": Fireworks = b; break;
@@ -267,6 +269,7 @@ namespace DesktopSnow
                 sb.Append("icicles=").Append(Icicles ? 1 : 0).Append("\r\n");
                 sb.Append("windDir=").Append(WindDir).Append("\r\n");
                 sb.Append("windPower=").Append(WindPower.ToString("0.0", CultureInfo.InvariantCulture)).Append("\r\n");
+                sb.Append("theme=").Append(Theme).Append("\r\n");
                 sb.Append("style=").Append(Style).Append("\r\n");
                 sb.Append("iceSpeed=").Append(IceSpeed.ToString("0.0", CultureInfo.InvariantCulture)).Append("\r\n");
                 sb.Append("fireworks=").Append(Fireworks ? 1 : 0).Append("\r\n");
