@@ -152,7 +152,7 @@ namespace DesktopSnow
         // 1 января в 00:00 — салют на минуту с небольшим.
         void CheckMidnight()
         {
-            DateTime n = DateTime.Now;
+            DateTime n = CityNow();   // полночь — по времени выбранного города
             if (C.Fireworks && n.Month == 1 && n.Day == 1 && n.Hour == 0 && n.Minute < 3 && fwYear != n.Year)
             {
                 fwYear = n.Year;
@@ -500,6 +500,7 @@ namespace DesktopSnow
             if (C.Drifts)
                 for (int i = z.Count - 1; i >= 0; i--)
                     if (z[i].Enabled) { if (pixel) DrawPilePixel(z[i]); else DrawPile(z[i]); }
+            DrawChunks();
             DrawIcicles();
             float rMul = (1f - 0.35f * calm) * C.Size, aMul = 1f - 0.5f * calm;
             bool front = C.Front;

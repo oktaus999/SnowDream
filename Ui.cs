@@ -77,6 +77,7 @@ namespace DesktopSnow
         public virtual void OnMove(PointF p) { }
         public virtual void OnUp(PointF p, bool inside) { }
         public virtual bool Animate() { return false; }
+        public virtual void OnWheel(int delta) { }
         protected float s { get { return F.Sc; } }
     }
 
@@ -257,18 +258,20 @@ namespace DesktopSnow
     class Chip : Widget
     {
         Func<string> text;
+        public Action Click;   // если задано — плашка кликабельна (смена города)
         public Chip(Func<string> text) { this.text = text; }
-        public override bool Clickable { get { return false; } }
+        public override bool Clickable { get { return Click != null; } }
         public override void Paint(Graphics g)
         {
             string tx = text();
             SizeF ts = g.MeasureString(tx, F.FTextB);
             float w = ts.Width + 26 * s;
             RectangleF r = new RectangleF(B.Right - w, B.Y, w, B.Height);
-            Th.Fill(g, r, B.Height / 2, Th.Field);
+            Th.Fill(g, r, B.Height / 2, Hover && Click != null ? Th.Mix(Th.Field, Th.Text, 0.1f) : Th.Field);
             using (SolidBrush b = new SolidBrush(Th.Accent)) g.FillEllipse(b, r.X + 11 * s, r.Y + B.Height / 2 - 3 * s, 6 * s, 6 * s);
             Th.Text2(g, tx, F.FTextB, Th.Text, new RectangleF(r.X + 22 * s, r.Y, ts.Width + 4, r.Height), StringAlignment.Near);
         }
+        public override void OnUp(PointF p, bool inside) { if (inside && Click != null) Click(); }
     }
 
     class CloseBtn : Widget
@@ -293,17 +296,18 @@ namespace DesktopSnow
         public readonly float Sc;
         public Font FTitle, FText, FTextB, FSub, FCap, FBtn;
 
-        class CardInfo { public RectangleF R; public string Title; public bool Compact; }
+        protected class CardInfo { public RectangleF R; public string Title; public bool Compact; }
 
-        List<Widget> ws = new List<Widget>();
-        List<CardInfo> cards = new List<CardInfo>();
+        protected List<Widget> ws = new List<Widget>();
+        protected List<CardInfo> cards = new List<CardInfo>();
         Widget hot, pressed;
         Timer tm;
-        float headerH;
-        int tick;
+        protected float headerH;
+        protected int tick;
+        Bitmap photoCache; object photoKey;   // фото фона, уже подогнанное под размер окна и затемнённое
 
         // построитель раскладки
-        float cx, cy, cw, cardY; string cardTitle;
+        protected float cx, cy, cw, cardY; protected string cardTitle;
 
         public SettingsForm(SnowApp app)
         {
@@ -312,7 +316,7 @@ namespace DesktopSnow
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
             ShowInTaskbar = true;
-            Th.Apply(app.C.Theme);
+            Th.Apply(app.C);
             BackColor = Th.Bg;
             DoubleBuffered = true;
             KeyPreview = true;
@@ -335,13 +339,12 @@ namespace DesktopSnow
                 bool any = false;
                 foreach (Widget w in ws) if (w.Animate()) any = true;
                 if (++tick % 30 == 0) any = true;   // раз в ~0.5 с обновляем статистику
-                if (Th.Decor == 3 && tick % 3 == 0) any = true;   // мерцание звёзд и радуги
                 if (any) Invalidate();
             };
             tm.Start();
         }
 
-        float P(float v) { return v * Sc; }
+        protected float P(float v) { return v * Sc; }
 
         const string DonateUrl = "https://www.donationalerts.com/r/oktau7";
 
@@ -351,33 +354,35 @@ namespace DesktopSnow
             try { System.Diagnostics.Process.Start(DonateUrl); } catch { }
         }
 
-        // «До Нового года 48 дн 07:12:33»
-        static string Countdown()
+        // «Москва · до НГ 39 дн 07:12:33» — по времени выбранного города
+        string Countdown()
         {
-            DateTime now = DateTime.Now;
-            if (now.Month == 1 && now.Day == 1) return L.T("С Новым годом!", "Happy New Year!");
+            DateTime now = App.CityNow();
+            City c = Cities.Find(App.C.City);
+            string where = c != null ? c.Name + " · " : "";
+            if (now.Month == 1 && now.Day == 1) return where + L.T("С Новым годом!", "Happy New Year!");
             TimeSpan d = new DateTime(now.Year + 1, 1, 1) - now;
-            return string.Format(L.T("До Нового года {0} дн {1:00}:{2:00}:{3:00}", "New Year in {0}d {1:00}:{2:00}:{3:00}"),
-                                 d.Days, d.Hours, d.Minutes, d.Seconds);
+            return where + string.Format(L.T("до НГ {0} дн {1:00}:{2:00}:{3:00}", "New Year in {0}d {1:00}:{2:00}:{3:00}"),
+                                         d.Days, d.Hours, d.Minutes, d.Seconds);
         }
 
         // десятичный разделитель: «0,6» по-русски, «0.6» по-английски
-        static IFormatProvider Num
+        protected static IFormatProvider Num
         {
             get { return L.En ? System.Globalization.CultureInfo.InvariantCulture : new System.Globalization.CultureInfo("ru-RU"); }
         }
 
-        void Add(Widget w, float x, float y, float wd, float h)
+        protected void Add(Widget w, float x, float y, float wd, float h)
         {
             w.F = this; w.B = new RectangleF(x, y, wd, h); ws.Add(w);
         }
 
-        void BeginCard(float x, float y, float w, string title)
+        protected void BeginCard(float x, float y, float w, string title)
         {
             cx = x; cardY = y; cw = w; cardTitle = title;
             cy = y + P(44);
         }
-        float EndCard()
+        protected float EndCard()
         {
             float bottom = cy + P(8);
             CardInfo c = new CardInfo();
@@ -385,30 +390,30 @@ namespace DesktopSnow
             cards.Add(c);
             return bottom;
         }
-        void RowToggle(string label, string sub, Func<bool> get, Action<bool> set)
+        protected void RowToggle(string label, string sub, Func<bool> get, Action<bool> set)
         {
             float h = P(sub == null ? 36 : 46);
             Add(new Toggle(label, sub, get, set), cx + P(18), cy, cw - P(36), h);
             cy += h + P(6);
         }
-        void RowCaption(Func<string> left, Func<string> right, bool small)
+        protected void RowCaption(Func<string> left, Func<string> right, bool small)
         {
             Add(new Caption(left, right, small), cx + P(18), cy, cw - P(36), P(22));
             cy += P(28);
         }
-        void RowSegmented(string[] opts, Func<int> get, Action<int> set)
+        protected void RowSegmented(string[] opts, Func<int> get, Action<int> set)
         {
             Add(new Segmented(opts, get, set), cx + P(18), cy, cw - P(36), P(36));
             cy += P(36 + 14);
         }
-        void RowSlider(float min, float max, float step, Func<float> get, Action<float> set)
+        protected void RowSlider(float min, float max, float step, Func<float> get, Action<float> set)
         {
             Add(new Slider(min, max, step, get, set), cx + P(10), cy, cw - P(20), P(26));
             cy += P(26 + 12);
         }
 
         // Пересобрать окно (например, после смены языка).
-        void Rebuild()
+        protected void Rebuild()
         {
             ws.Clear(); cards.Clear();
             hot = null; pressed = null;
@@ -417,7 +422,7 @@ namespace DesktopSnow
             Invalidate();
         }
 
-        void Build()
+        protected virtual void Build()
         {
             Config C = App.C;
             float pad = P(20), gap = P(14), colW = P(322), W = 3 * colW + 2 * gap + 2 * pad;
@@ -432,7 +437,9 @@ namespace DesktopSnow
             Add(new Segmented(new[] { "RU", "EN" }, delegate { return C.Lang; },
                               delegate(int v) { if (C.Lang != v) { C.Lang = v; BeginInvoke(new MethodInvoker(Rebuild)); } }),
                 langX, P(22), langW, P(30));
-            Add(new Chip(Countdown), langX - P(12) - P(330), P(23), P(330), P(28));
+            Chip chip = new Chip(Countdown);
+            chip.Click = delegate { App.ShowCityPicker(null); };   // клик по отсчёту — сменить город
+            Add(chip, langX - P(12) - P(330), P(23), P(330), P(28));
 
             // ---- колонка 1 ----
             float x1 = pad, x2 = pad + colW + gap, x3 = pad + 2 * (colW + gap), y = headerH;
@@ -553,20 +560,45 @@ namespace DesktopSnow
         public void SetTheme(int theme)
         {
             App.C.Theme = theme;
-            Th.Apply(theme);
-            BackColor = Th.Bg;
-            Changed();
+            App.RefreshTheme();
+            if (theme == 3) App.ShowThemeEditor();   // «Своя» тема — сразу открываем редактор
         }
 
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-            g.Clear(Th.Bg);
-            Th.DrawDecor(g, ClientSize.Width, ClientSize.Height, headerH, Sc, tick);
+        // Перекрасить окно после смены темы.
+        public void ThemeRefresh() { BackColor = Th.Bg; photoCache = null; Invalidate(); }
 
-            // шапка
+        // Фото фона «своей» темы: растягиваем с обрезкой по центру и затемняем цветом фона.
+        void PaintPhoto(Graphics g)
+        {
+            if (Th.Photo == null) return;
+            object key = Th.Photo.GetHashCode() + "|" + ClientSize + "|" + Th.PhotoDim + "|" + Th.Bg.ToArgb();
+            if (photoCache == null || !key.Equals(photoKey))
+            {
+                if (photoCache != null) photoCache.Dispose();
+                int w = Math.Max(1, ClientSize.Width), h = Math.Max(1, ClientSize.Height);
+                photoCache = new Bitmap(w, h);
+                using (Graphics pg = Graphics.FromImage(photoCache))
+                {
+                    pg.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    float k = Math.Max(w / (float)Th.Photo.Width, h / (float)Th.Photo.Height);
+                    float iw = Th.Photo.Width * k, ih = Th.Photo.Height * k;
+                    pg.DrawImage(Th.Photo, (w - iw) / 2, (h - ih) / 2, iw, ih);
+                    using (SolidBrush dim = new SolidBrush(Color.FromArgb(Th.PhotoDim * 255 / 100, Th.Bg))) pg.FillRectangle(dim, 0, 0, w, h);
+                    // подложка под шапкой и нижней строкой — чтобы мелкие подписи читались на любом фото
+                    using (SolidBrush band = new SolidBrush(Color.FromArgb(150, Th.Bg)))
+                    {
+                        pg.FillRectangle(band, 0, 0, w, headerH);
+                        pg.FillRectangle(band, 0, h - P(58), w, P(58));
+                    }
+                }
+                photoKey = key;
+            }
+            g.DrawImageUnscaled(photoCache, 0, 0);
+        }
+
+        // Шапка окна: значок, название и подпись.
+        protected virtual void PaintHeader(Graphics g)
+        {
             float isz = P(34), ix = P(22), iy = P(20);
             Th.Fill(g, new RectangleF(ix, iy, isz, isz), P(10), Th.Field);
             GraphicsState st = g.Save();
@@ -575,10 +607,23 @@ namespace DesktopSnow
             g.Restore(st);
             Th.Text2(g, "SnowDream", FTitle, Th.Text, new RectangleF(ix + isz + P(12), iy - P(2), P(400), P(22)), StringAlignment.Near);
             Th.Text2(g, "by øktaus", FSub, Th.Sub, new RectangleF(ix + isz + P(12), iy + P(19), P(400), P(18)), StringAlignment.Near);
+        }
 
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+            g.Clear(Th.Bg);
+            PaintPhoto(g);
+            Th.DrawDecor(g, ClientSize.Width, ClientSize.Height, headerH, Sc, tick);
+            PaintHeader(g);
+
+            // поверх фото карточки слегка прозрачные, чтобы фото угадывалось
+            Color card = Th.Photo != null ? Color.FromArgb(222, Th.Card) : Th.Card;
             foreach (CardInfo c in cards)
             {
-                Th.Fill(g, c.R, P(14), Th.Card);
+                Th.Fill(g, c.R, P(14), card);
                 RectangleF tr = c.Compact
                     ? new RectangleF(c.R.X + P(18), c.R.Y, c.R.Width / 2, c.R.Height)
                     : new RectangleF(c.R.X + P(18), c.R.Y + P(12), c.R.Width - P(36), P(22));
@@ -635,6 +680,12 @@ namespace DesktopSnow
             w.Down = false;
             w.OnUp(e.Location, w.B.Contains(e.Location));
             Invalidate();
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            if (hot != null) hot.OnWheel(e.Delta);
         }
 
         protected override void OnMouseLeave(EventArgs e)

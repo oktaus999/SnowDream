@@ -21,6 +21,7 @@ namespace DesktopSnow
         public bool Gusting { get { return gustT >= 0 || gustRequest; } }
         public Icon AppIcon;
         public static bool Diag;
+        public static bool Quiet;        // --quiet: служебный запуск, город не спрашиваем
         public static string SnapPath;   // --snapshot: сохранить кадр слоя снега в PNG (для отладки)
         bool snapDone;
 
@@ -31,7 +32,9 @@ namespace DesktopSnow
         NotifyIcon tray;
         ToolStripMenuItem miSnowing, miSettings, miBlow, miQuit;
         SettingsForm settings;
+        ThemeEditorForm editor;
         EventWaitHandle showEvt, blowEvt, fwEvt;
+        EventWaitHandle shotEvt = new EventWaitHandle(false, EventResetMode.AutoReset, "SnowDream_ShotUI");
         System.Windows.Forms.Timer uiTimer;
         const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -74,11 +77,15 @@ namespace DesktopSnow
                 if (showEvt != null && showEvt.WaitOne(0)) ShowSettings();
                 if (blowEvt != null && blowEvt.WaitOne(0)) StartGust();
                 if (fwEvt != null && fwEvt.WaitOne(0)) StartFireworks();
+                if (shotEvt.WaitOne(0)) RenderUiShots();
                 if (renderFailed) ExitApp();
             };
             uiTimer.Start();
 
-            if (openSettings) ShowSettings();
+            // первый запуск: сначала спрашиваем город, потом открываем настройки
+            Zone = Cities.Zone(C.City);
+            if (string.IsNullOrEmpty(C.City) && !Quiet) ShowCityPicker(openSettings ? (Action)ShowSettings : null);
+            else if (openSettings) ShowSettings();
         }
 
         public void StartGust() { if (!Gusting) gustRequest = true; }
@@ -225,6 +232,7 @@ namespace DesktopSnow
                 }
             }
             UpdateParticles(dt);
+            UpdateChunks(dt);
             UpdateFireworks(dt);
             Render();
             if (SnapPath != null && !snapDone && t > 30) { snapDone = true; SaveSnapshot(SnapPath); }
@@ -361,6 +369,98 @@ namespace DesktopSnow
             }
             C.Save();
             if (settings != null && !settings.IsDisposed) settings.Invalidate();
+            if (editor != null && !editor.IsDisposed) editor.Invalidate();
+        }
+
+        // Отладка/README (--shot-ui): рисуем окно настроек в PNG, не показывая его на экране.
+        // Запросы — строки «путь|язык|тема|город» в файле shot-request.txt в папке настроек.
+        void RenderUiShots()
+        {
+            string req = Path.Combine(Config.Dir, "shot-request.txt");
+            if (!File.Exists(req)) return;
+            int lang = C.Lang, theme = C.Theme; string city = C.City;
+            try
+            {
+                foreach (string line in File.ReadAllLines(req))
+                {
+                    string[] p = line.Split('|');
+                    if (p.Length < 4) continue;
+                    C.Lang = p[1] == "1" ? 1 : 0;
+                    int th; int.TryParse(p[2], out th); C.Theme = th;
+                    C.City = p[3]; Zone = Cities.Zone(C.City);
+                    Th.Apply(C);
+                    using (SettingsForm f = new SettingsForm(this))
+                    using (Bitmap b = new Bitmap(f.ClientSize.Width, f.ClientSize.Height))
+                    {
+                        f.DrawToBitmap(b, new Rectangle(0, 0, b.Width, b.Height));
+                        b.Save(p[0], ImageFormat.Png);
+                    }
+                }
+            }
+            catch (Exception ex) { Program.Log(ex); }
+            finally
+            {
+                C.Lang = lang; C.Theme = theme; C.City = city; Zone = Cities.Zone(city);
+                Th.Apply(C);
+                if (settings != null && !settings.IsDisposed) settings.ThemeRefresh();
+                try { File.Delete(req); } catch { }
+            }
+        }
+
+        // ---------- город ----------
+        public volatile TimeZoneInfo Zone;   // часовой пояс выбранного города (null — часы компьютера)
+        CityForm cityForm;
+
+        public DateTime CityNow()
+        {
+            TimeZoneInfo z = Zone;
+            return z == null ? DateTime.Now : TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, z);
+        }
+
+        public void SetCity(string en)
+        {
+            C.City = en;
+            Zone = Cities.Zone(en);
+            C.Save();
+            if (settings != null && !settings.IsDisposed) settings.Invalidate();
+        }
+
+        public void ShowCityPicker(Action after)
+        {
+            if (cityForm == null || cityForm.IsDisposed)
+            {
+                cityForm = new CityForm(this, after);
+                cityForm.StartPosition = FormStartPosition.CenterScreen;
+            }
+            if (!cityForm.Visible) cityForm.Show();
+            cityForm.TopMost = true; cityForm.Activate(); cityForm.TopMost = false;
+        }
+
+        // Тема поменялась: пересчитываем цвета и перекрашиваем открытые окна.
+        public void RefreshTheme()
+        {
+            Th.Apply(C);
+            if (settings != null && !settings.IsDisposed) settings.ThemeRefresh();
+            if (editor != null && !editor.IsDisposed) editor.ThemeRefresh();
+            C.Save();
+        }
+
+        // Редактор «своей» темы открывается рядом с окном настроек.
+        public void ShowThemeEditor()
+        {
+            if (editor == null || editor.IsDisposed)
+            {
+                editor = new ThemeEditorForm(this);
+                if (settings != null && !settings.IsDisposed)
+                {
+                    Rectangle sr = settings.Bounds, wa = Screen.FromControl(settings).WorkingArea;
+                    int x = sr.Right + 12;
+                    if (x + editor.Width > wa.Right) x = Math.Max(wa.Left, sr.Left - 12 - editor.Width);
+                    editor.Location = new Point(x, Math.Max(wa.Top, Math.Min(sr.Top, wa.Bottom - editor.Height)));
+                }
+            }
+            if (!editor.Visible) editor.Show();
+            editor.Activate();
         }
 
         public static bool GetAutostart()
@@ -385,6 +485,7 @@ namespace DesktopSnow
             if (uiTimer != null) uiTimer.Stop();
             if (renderThread != null) { renderThread.Join(3000); renderThread = null; }
             if (diagTimer != null) diagTimer.Dispose();
+            if (editor != null && !editor.IsDisposed) editor.Close();
             if (settings != null && !settings.IsDisposed) settings.Close();
             if (tray != null) { tray.Visible = false; tray.Dispose(); tray = null; }
             ExitThread();

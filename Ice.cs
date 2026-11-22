@@ -147,7 +147,7 @@ namespace DesktopSnow
             if (s != null && C.Drifts)
             {
                 int r = (int)(10 * S);
-                CollapseRange(s, col - r, col + r, 0.35f, 0, -140f * S, s.Id);
+                CrumbleRange(s, col - r, col + r, 0.35f, 0, -140f * S, s.Id);   // брызги снега — мелкой пылью
             }
             Regrow(c, false);
         }

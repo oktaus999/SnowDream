@@ -19,20 +19,20 @@ SnowDream makes it snow right on top of your desktop. Flakes drift with the wind
 ### Features
 
 - **Real snow physics.** Snow piles up on the visible top edges of windows into natural, hilly drifts, slides off the edges, follows the rounded corners of Windows 11 windows, and covers the taskbar and the bottom of the screen.
-- **Windows interact with snow.** Close or minimize a window and its drift collapses. Jerk a window sharply and the snow flies off by inertia; drag it gently and the snow stays.
+- **Windows interact with snow.** Close or minimize a window and its drift breaks off in clumps that fall and land on whatever is below. Jerk a window sharply and the snow flies off by inertia; drag it gently and the snow stays.
 - **Icicles.** They grow down from the top edge of every monitor, drip now and then, break off and shatter into bouncing ice shards. Adjustable growth speed.
 - **Wind.** Choose the direction (left, auto, right) and strength — from snow falling straight down to a slanted blizzard.
 - **Blow all snow away.** A gust sweeps across the screen in the wind direction and lifts every drift, icicle and shard into the air. After ~5 seconds it calms down.
 - **Flake styles.** Soft dots, rotating six-armed stars, blocks or pixel snowflakes — the last two with blocky, step-like drifts.
 - **Cursor.** Flakes swirl around your mouse pointer.
-- **Themes for the settings window.** Night, Fir tree (red, white and green with a candy-cane stripe), Tangerine (red and orange with a warm glow) and Rainbow (space blue with twinkling pixel stars and a rainbow trail).
-- **New Year.** A live countdown in the settings, and fireworks on your desktop at 00:00 on January 1st (or right now, with a button).
+- **Themes for the settings window.** Night, Fir tree (red, white and green with a candy-cane stripe), Festive (burgundy, coral, gold and pine green) and your own Custom theme — pick a background photo and your colors from a palette or any color you like.
+- **New Year.** On first launch SnowDream asks for your city, and the live countdown and fireworks at 00:00 on January 1st follow that city's time zone. Click the countdown to change the city.
 - **Doesn't get in the way.** Click-through overlay; snow can get quiet or hide in maximized windows and hides in games and fullscreen video.
 - **Lightweight.** ~1–3% CPU, rendered on its own thread, a single ~100 KB `.exe` with no dependencies.
 - Intensity, fall speed and flake size, performance mode (30 fps / 60 fps / monitor refresh rate), start with Windows, Russian / English.
 
 <p align="center">
-  <img src="docs/themes.png" width="900" alt="Settings window themes: Fir tree, Tangerine, Rainbow">
+  <img src="docs/themes.png" width="900" alt="Settings window themes: Fir tree, Festive, Custom">
 </p>
 
 ### Download
@@ -71,6 +71,9 @@ The result is `SnowDream.exe` in the same folder.
 | `Ice.cs` | icicles |
 | `Styles.cs` | flake styles and blocky drifts |
 | `Themes.cs` | settings window themes and their decorations |
+| `ThemeEditor.cs` | custom theme editor: photo and palette |
+| `Cities.cs` | city and time zone picker |
+| `Chunks.cs` | drifts breaking off in clumps |
 | `Ui.cs` | settings window with custom-drawn controls |
 | `build.bat` | build script |
 
@@ -87,14 +90,14 @@ SnowDream запускает снег прямо поверх рабочего �
 ### Возможности
 
 - **Настоящая физика снега.** Снег копится на видимых краях окон естественными холмистыми сугробами, сползает с краёв, повторяет скруглённые углы окон Windows 11, засыпает панель задач и низ экрана.
-- **Окна взаимодействуют со снегом.** Закрыл или свернул окно, и сугроб обрушивается. Резко дёрнул окно, и снег слетает по инерции, а при плавном перетаскивании держится.
+- **Окна взаимодействуют со снегом.** Закрыл или свернул окно, и сугроб отваливается глыбами, которые падают и ложатся на то, что ниже. Резко дёрнул окно, и снег слетает по инерции, а при плавном перетаскивании держится.
 - **Сосульки.** Растут вниз от верхнего края каждого монитора, иногда капают, срываются и разбиваются на подпрыгивающие осколки. Скорость роста настраивается.
 - **Ветер.** Можно выбрать направление (влево, авто, вправо) и силу: от снега строго вниз до косой метели.
 - **«Сдуть весь снег».** Порыв ветра проносится по экрану в сторону ветра и поднимает в воздух сугробы, сосульки и осколки. Секунд через 5 он стихает.
 - **Виды снежинок.** Мягкие точки, вращающиеся шестилучевые звёзды, блоки или пиксельные снежинки. У двух последних сугробы тоже блочные, ступеньками.
 - **Курсор.** Снежинки облетают мышку.
-- **Темы окна настроек.** Ночь, Ёлка (красно-бело-зелёная с полоской-«леденцом»), Мандарин (красно-оранжевая с тёплым свечением) и Радуга (космический синий, мерцающие пиксельные звёзды и радужный шлейф).
-- **Новый год.** Живой отсчёт в настройках и салют на рабочем столе 1 января в 00:00, а кнопкой можно запустить его прямо сейчас.
+- **Темы окна настроек.** Ночь, Ёлка (красно-бело-зелёная с полоской-«леденцом»), Праздник (бордо, коралл, золото и хвоя) и Своя тема: фото на фон и свои цвета из палитры или любые.
+- **Новый год.** При первом запуске программа спрашивает твой город, и живой отсчёт и салют 1 января в 00:00 идут по его часовому поясу. Сменить город можно кликом по отсчёту, а салют запустить кнопкой прямо сейчас.
 - **Не мешает.** Клики проходят сквозь снег. В развёрнутых окнах снег может стать тихим или спрятаться, а в играх и полноэкранном видео прячется.
 - **Лёгкий.** Около 1–3% процессора, рисуется в отдельном потоке, один `.exe` примерно на 100 КБ без зависимостей.
 - Сила снегопада, скорость падения и размер снежинок, режим нагрузки (30 / 60 кадров в секунду / частота монитора), автозапуск, русский / английский.

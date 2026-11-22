@@ -194,7 +194,13 @@ namespace DesktopSnow
         public float IceSpeed = 1f;    // скорость роста сосулек
         public int WindDir = 1;        // ветер: 0 влево, 1 авто, 2 вправо
         public float WindPower = 1f;   // сила ветра, 0 — снег падает строго вниз
-        public int Theme = 0;          // тема окна настроек: 0 ночь, 1 ёлка, 2 мандарин, 3 радуга
+        public string City = "";       // город для отсчёта до Нового года (англ. название) или "local"
+        public int Theme = 0;          // тема окна настроек: 0 ночь, 1 ёлка, 2 праздник, 3 своя
+        public int CustomBg = unchecked((int)0xFF15171C);       // «своя» тема: фон
+        public int CustomAccent = unchecked((int)0xFF8CCBFF);   // акцент
+        public int CustomAccent2 = unchecked((int)0xFF8CCBFF);  // второй цвет градиента кнопки
+        public string CustomPhoto = "";                         // файл фото в папке настроек
+        public int CustomDim = 55;                              // затемнение фото, %
         public int Style = 0;          // вид снежинок: 0 точки, 1 звёзды-кристаллы, 2 блоки, 3 пиксельные звёздочки
 
         static int DefaultLang()
@@ -238,6 +244,12 @@ namespace DesktopSnow
                         case "icicles": Icicles = b; break;
                         case "windDir": if (int.TryParse(v, out iv)) WindDir = Math.Max(0, Math.Min(2, iv)); break;
                         case "windPower": if (float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out fv)) WindPower = Math.Max(0f, Math.Min(3f, fv)); break;
+                        case "customBg": TryHex(v, ref CustomBg); break;
+                        case "customAccent": TryHex(v, ref CustomAccent); break;
+                        case "customAccent2": TryHex(v, ref CustomAccent2); break;
+                        case "customPhoto": CustomPhoto = v; break;
+                        case "customDim": if (int.TryParse(v, out iv)) CustomDim = Math.Max(0, Math.Min(90, iv)); break;
+                        case "city": City = v; break;
                         case "theme": if (int.TryParse(v, out iv)) Theme = Math.Max(0, Math.Min(3, iv)); break;
                         case "style": if (int.TryParse(v, out iv)) Style = Math.Max(0, Math.Min(3, iv)); break;
                         case "iceSpeed": if (float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out fv)) IceSpeed = Math.Max(0.2f, Math.Min(3f, fv)); break;
@@ -247,6 +259,12 @@ namespace DesktopSnow
                 }
             }
             catch { }
+        }
+
+        static void TryHex(string v, ref int target)
+        {
+            int x;
+            if (int.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out x)) target = x;
         }
 
         public void Save()
@@ -269,6 +287,12 @@ namespace DesktopSnow
                 sb.Append("icicles=").Append(Icicles ? 1 : 0).Append("\r\n");
                 sb.Append("windDir=").Append(WindDir).Append("\r\n");
                 sb.Append("windPower=").Append(WindPower.ToString("0.0", CultureInfo.InvariantCulture)).Append("\r\n");
+                sb.Append("customBg=").Append(CustomBg.ToString("X8")).Append("\r\n");
+                sb.Append("customAccent=").Append(CustomAccent.ToString("X8")).Append("\r\n");
+                sb.Append("customAccent2=").Append(CustomAccent2.ToString("X8")).Append("\r\n");
+                sb.Append("customPhoto=").Append(CustomPhoto).Append("\r\n");
+                sb.Append("customDim=").Append(CustomDim).Append("\r\n");
+                sb.Append("city=").Append(City).Append("\r\n");
                 sb.Append("theme=").Append(Theme).Append("\r\n");
                 sb.Append("style=").Append(Style).Append("\r\n");
                 sb.Append("iceSpeed=").Append(IceSpeed.ToString("0.0", CultureInfo.InvariantCulture)).Append("\r\n");
@@ -320,11 +344,14 @@ namespace DesktopSnow
                 if (!created)
                 {
                     // программа уже запущена: «--blow» сдувает снег, «--fireworks» запускает салют, иначе открываем настройки
-                    if (blow) blowEvt.Set(); else if (fireworks) fwEvt.Set(); else showEvt.Set();
+                    if (Array.IndexOf(args, "--shot-ui") >= 0)
+                        using (EventWaitHandle shot = new EventWaitHandle(false, EventResetMode.AutoReset, "SnowDream_ShotUI")) shot.Set();
+                    else if (blow) blowEvt.Set(); else if (fireworks) fwEvt.Set(); else showEvt.Set();
                     return;
                 }
                 bool autostart = Array.IndexOf(args, "--autostart") >= 0;
                 SnowApp.Diag = Array.IndexOf(args, "--diag") >= 0;
+                SnowApp.Quiet = Array.IndexOf(args, "--quiet") >= 0;
                 int si = Array.IndexOf(args, "--snapshot");
                 if (si >= 0 && si + 1 < args.Length) SnowApp.SnapPath = args[si + 1];
                 Application.EnableVisualStyles();

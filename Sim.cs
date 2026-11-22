@@ -277,47 +277,21 @@ namespace DesktopSnow
         void Remap(Surface s, int nl, int nt, int nr, int nb)
         {
             int nw = Math.Max(1, nr - nl);
+            // снег, оказавшийся за новыми краями окна, отваливается глыбами
+            CollapseRange(s, 0, nl - s.L, 1f, 0, 0, s.Id);
+            CollapseRange(s, nr - s.L, s.H.Length, 1f, 0, 0, s.Id);
             float[] nh = new float[nw];
             for (int i = 0; i < s.H.Length; i++)
             {
-                float v = s.H[i];
-                if (v <= 0.05f) continue;
                 int j = s.L + i - nl;
-                if (j >= 0 && j < nw) nh[j] = v;
-                else
-                {
-                    int cnt = (int)Math.Ceiling(v / 2.5f);
-                    float bot = s.T + s.Base[i];
-                    for (int k = 0; k < cnt; k++)
-                        Clump(s.L + i + 0.5f, bot - v + (k + 0.5f) * v / cnt, (Rnd() - 0.5f) * 10 * S, Rnd() * 15 * S, v / cnt, s.Id);
-                }
+                if (j >= 0 && j < nw) nh[j] = s.H[i];
             }
             s.H = nh; s.L = nl; s.T = nt; s.R = nr; s.B = nb;
             s.ComputeBase();
         }
 
-        // Часть снега (frac) со столбцов [c0, c1) превращается в падающие комки.
+        // Часть снега (frac) со всей поверхности отваливается глыбами (см. Chunks.cs).
         void Collapse(Surface s, float frac, float vx, float vy, int ign) { CollapseRange(s, 0, s.H.Length, frac, vx, vy, ign); }
-
-        void CollapseRange(Surface s, int c0, int c1, float frac, float vx, float vy, int ign)
-        {
-            float[] h = s.H; int n = h.Length;
-            if (c0 < 0) c0 = 0; if (c1 > n) c1 = n;
-            for (int i = c0; i < c1; i += 2)
-            {
-                bool two = i + 1 < c1;
-                float h0 = h[i], h1 = two ? h[i + 1] : 0f;
-                float a = h0 * frac, b = h1 * frac, area = a + b;
-                h[i] = h0 - a; if (two) h[i + 1] = h1 - b;
-                if (area < 0.3f) continue;
-                float col = (h0 + h1) * 0.5f, hs = area * 0.5f;
-                int cnt = Math.Max(1, (int)Math.Ceiling(hs / 2.5f));
-                float top = s.T + s.Base[i] - col;
-                for (int k = 0; k < cnt; k++)
-                    Clump(s.L + i + 0.5f + Rnd(), top + (k + 0.5f) * hs / cnt,
-                          vx + (Rnd() - 0.5f) * 14f * S, vy + Rnd() * 22f * S, area / cnt, ign);
-            }
-        }
 
         // Сравниваем абсолютный уровень снега (с учётом изгиба кромки), а не просто толщину.
         static void Rel(float[] h, float[] bs, int a, int b, float rep)
